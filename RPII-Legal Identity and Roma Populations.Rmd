@@ -48,3 +48,82 @@ names(datasets)
 list2env(datasets, envir = .GlobalEnv)
 ls()
 ```
+
+Checking for the relevant data sets 
+```{r}
+str(datasets$hhr)
+str(datasets$hlr)
+str(datasets$wmr)
+str(datasets$chr)
+
+```
+
+
+#Checking for if Hl1 needs to be recoded into LN 
+
+```{r}
+names(datasets$hlr)
+```
+#Sort datasets by key variables
+
+```{r}
+datasets$hhr <- datasets$hhr %>% arrange(HH1, HH2)
+datasets$hlr <- datasets$hlr %>% arrange(HH1, HH2, LN)
+datasets$wmr <- datasets$wmr %>% arrange(HH1, HH2, LN)
+datasets$chr <- datasets$chr %>% arrange(HH1, HH2, LN)
+datasets$chr <- datasets$bhr %>% arrange(HH1, HH2, LN)
+datasets$chr <- datasets$fsr %>% arrange(HH1, HH2, LN)
+```
+
+#Merge datasets
+```{r}
+merged_data <- left_join(datasets$hlr, datasets$hhr, by = c("HH1", "HH2"))
+merged_data <- left_join(merged_data, datasets$wmr, by = c("HH1", "HH2", "LN"))
+merged_data <- left_join(merged_data, datasets$chr, by = c("HH1", "HH2", "LN"))
+merged_data <- left_join(merged_data, datasets$bhr, by = c("HH1", "HH2", "LN"))
+merged_data <- left_join(merged_data, datasets$fsr, by = c("HH1", "HH2", "LN"))
+```
+
+
+# Adding relevand variables for analyis
+```{r}
+hhr_selected <- datasets$hhr %>%
+  select(HH1, HH2, HH10) # Household Wealth Index
+
+hlr_selected <- datasets$hlr %>%
+  select(HH1, HH2, LN, HH6) # Urban/Rural Residence
+
+wmr_selected <- datasets$wmr %>%
+  select(HH1, HH2, LN, WM9, WM1) # Mother Disability Status and Mother's Education Level
+
+chr_selected <- datasets$chr %>%
+  select(HH1, HH2, LN, BR2, WS2, UB9) # Birth Registration, Child Disability Status, and Health Insurance Coverage
+
+```
+
+
+
+
+
+# Check merged dataset
+
+```{r}
+str(merged_data)
+```
+
+# Save merged dataset for better sharing and in the case of crash
+```{r}
+write.csv(merged_data, "merged_data.csv", row.names = FALSE)
+```
+
+
+
+
+
+
+# Start of analysis
+# Summary statistics
+```{r}
+summary(merged_data)
+```
+
