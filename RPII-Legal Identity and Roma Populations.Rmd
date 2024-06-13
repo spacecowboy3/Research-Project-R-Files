@@ -1,0 +1,50 @@
+---
+title: 'RPII: Legal Identity and Roma Populations in North Macedonia'
+author: "Noah Plane"
+date: "2024-06-12"
+output: html_document
+---
+
+# Downloading package facilitating the importing of SPSS files into R
+
+```{r}
+if (!requireNamespace("haven", quietly = TRUE)) {
+  install.packages("haven", repos = "http://cran.us.r-project.org")
+}
+if (!requireNamespace("dplyr", quietly = TRUE)) {
+  install.packages("dplyr", repos = "http://cran.us.r-project.org")
+}
+
+library(haven)
+library(dplyr)
+```
+
+
+# Loading UNICEF MICS North-Macedonia SPSS data form 2018-19 into R all data that is specifically about the Roma population gets the indicator .r
+
+```{r}
+data_directory <- "~/Desktop/Research Project R Files/Data/Republic of North Macedonia (Roma Settlements) MICS6 SPSS Datasets"
+sav_files <- list.files(data_directory, pattern = "\\.sav$", full.names = TRUE)
+datasets <- list()
+for (file in sav_files) {
+  dataset_name <- paste0(tools::file_path_sans_ext(basename(file)), "r") 
+  datasets[[dataset_name]] <- read_sav(file)
+}
+
+names(datasets)
+
+data_directory_2 <- "~/Desktop/Research Project R Files/Data/Republic of North Macedonia MICS6 SPSS Datasets"
+sav_files_2 <- list.files(data_directory_2, pattern = "\\.sav$", full.names = TRUE)
+for (file in sav_files_2) {
+  dataset_name <- tools::file_path_sans_ext(basename(file)) 
+  datasets[[dataset_name]] <- read_sav(file)
+}
+names(datasets)
+```
+
+# Assign each data-set to a separate variable in the global environment
+
+```{r}
+list2env(datasets, envir = .GlobalEnv)
+ls()
+```
