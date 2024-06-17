@@ -20,10 +20,10 @@ library(dplyr)
 ```
 
 
-# Loading UNICEF MICS North-Macedonia SPSS data form 2018-19 into R all data that is specifically about the Roma population gets the indicator .r
+# Loading UNICEF MICS North-Macedonia SPSS data form 2018-19 into R all data that is specifically about the Roma population gets the indicator r
 
 ```{r}
-data_directory <- "~/Desktop/Research Project R Files/Data/Republic of North Macedonia (Roma Settlements) MICS6 SPSS Datasets"
+data_directory <- "~/Desktop/Research Project R Files/RESEARCH-PROJECT-R-FILES/Data/Republic of North Macedonia (Roma Settlements) MICS6 SPSS Datasets"
 sav_files <- list.files(data_directory, pattern = "\\.sav$", full.names = TRUE)
 datasets <- list()
 for (file in sav_files) {
@@ -33,7 +33,7 @@ for (file in sav_files) {
 
 names(datasets)
 
-data_directory_2 <- "~/Desktop/Research Project R Files/Data/Republic of North Macedonia MICS6 SPSS Datasets"
+data_directory_2 <- "~/Desktop/Research Project R Files/RESEARCH-PROJECT-R-FILES/Data/Republic of North Macedonia MICS6 SPSS Datasets"
 sav_files_2 <- list.files(data_directory_2, pattern = "\\.sav$", full.names = TRUE)
 for (file in sav_files_2) {
   dataset_name <- tools::file_path_sans_ext(basename(file)) 
@@ -42,74 +42,150 @@ for (file in sav_files_2) {
 names(datasets)
 ```
 
-# Assign each data-set to a separate variable in the global environment
-
-```{r}
-list2env(datasets, envir = .GlobalEnv)
-ls()
-```
-
-Checking for the relevant data sets 
-```{r}
-str(datasets$hhr)
-str(datasets$hlr)
-str(datasets$wmr)
-str(datasets$chr)
-
-```
 
 
-#Checking for if Hl1 needs to be recoded into LN 
+
+#Checking for if Hl1 needs to be recoded into LN for the hlr dataset
 
 ```{r}
 names(datasets$hlr)
 ```
-#Sort datasets by key variables
+
+# Recoding Hl1 into LN for the hlr dataset
+```{r}
+datasets$hlr$LN <- datasets$hlr$HL1
+```
+
+# Opening all datasets as a sepreate objects the global environment to check for recoding and cleaning
+```{r}
+chr <- datasets$chr
+hhr <- datasets$hhr
+hlr <- datasets$hlr
+wmr <- datasets$wmr
+bhr <- datasets$bhr
+fsr <- datasets$fsr
+ch <- datasets$chr
+hh <- datasets$hhr
+hl <- datasets$hlr
+wm <- datasets$wmr
+bh <- datasets$bhr
+fs <- datasets$fsr
+```
+
+# Recoding primary and control variables:
+
+# Recoding indeependant variable
+# Creating new variable Index_Birth_Registered_R for the dependant variable that mesures birth registration, combining variable BR1 on birth cerfiticates and BR2 on birth registration into one new binary variable Index_Birth_Registered_R that mesures if the child has a birth certificate or is registered with 1 (BR1=1,2 or BR2=1) beeing yes and 0 (BR1=3 or BR2=2) beeing no with 8 and being missing data (BR1=8 or BR2=8) adding this new variable to the chr dataset next to the original variables BR1 and BR2
+```{r}
+chr <- chr %>%
+  mutate(
+    Index_Birth_Registered_R = case_when(
+      BR1 %in% c(1, 2) | BR2 == 1 ~ 1,
+      BR1 == 3 | BR2 == 2 ~ 0,
+      BR1 %in% c(8, NA) | BR2 %in% c(8, NA) ~ NA_real_,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  relocate(Index_Birth_Registered_R, .after = BR2) 
+
+```
+
+# Recoding independent variable 
+# Creating new variable Index_Disabled_Child_R for the independent variablet hat indicates if a child is disabled (1) or not (0) 
+# based on a combination of variables related to disabilities (UCF3, UCF4, UCF7, UCF9, UCF11, UCF12, UCF13-UCF18)
+# The variable is assigned 1 if any of the disability-related variables indicate disability
+# The variable is assigned 0 if none of the disability-related variables indicate disability
+# AND at least one variable indicates non-disability
+# If all relevant variables are missing, the variable is assigned NA
+
+binary variable Index_Disabled_Child, where 1 is disabled, 0 is not disabled, and the rest is coded as missing.
+```{r}
+chr <- chr %>%
+  mutate(
+    Index_Disabled_Child_R = case_when(
+      UCF3 == 1 | UCF4 == 1 | UCF7 %in% c(2, 3, 4) | UCF9 %in% c(2, 3, 4) |
+        UCF11 %in% c(2, 3, 4) | UCF12 %in% c(1, 2, 3, 4) |
+        UCF13 %in% c(3, 4) | UCF14 %in% c(3, 4) | UCF15 %in% c(3, 4) |
+        UCF16 %in% c(3, 4) | UCF17 %in% c(3, 4) | UCF18 %in% c(3, 4) ~ 1,
+      (UCF3 == 2 | UCF4 == 2 | UCF7 == 1 | UCF9 == 1 |
+        UCF12 == 0 | UCF13 %in% c(1, 2) | UCF14 %in% c(1, 2) |
+        UCF15 %in% c(1, 2) | UCF16 %in% c(1, 2) | UCF17 %in% c(1, 2) |
+        UCF18 %in% c(1, 2)) &
+        !(UCF3 == 1 | UCF4 == 1 | UCF7 %in% c(2, 3, 4) | UCF9 %in% c(2, 3, 4) |
+          UCF11 %in% c(2, 3, 4) | UCF12 %in% c(1, 2, 3, 4) |
+          UCF13 %in% c(3, 4) | UCF14 %in% c(3, 4) | UCF15 %in% c(3, 4) |
+          UCF16 %in% c(3, 4) | UCF17 %in% c(3, 4) | UCF18 %in% c(3, 4)) ~ 0,
+      is.na(UCF3) & is.na(UCF4) & is.na(UCF7) & is.na(UCF9) &
+        is.na(UCF11) & is.na(UCF12) & is.na(UCF13) & is.na(UCF14) &
+        is.na(UCF15) & is.na(UCF16) & is.na(UCF17) & is.na(UCF18) ~ NA_real_,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  relocate(Index_Disabled_Child_R, .after = UCF18)
+```
+
+# Recoding independent variable/moderator 
+# Creating new variable Index_Mother_Disabled_R for the independent variable that indicates if the mother is disabled (1) or not (0)
+# based on a combination of variables related to disabilities ((AF2, AF3, AF6, AF8, AF9, AF10, AF11, AF12)
+# The variable is assigned 1 if any of the disability-related variables indicate disability
+# The variable is assigned 0 if none of the disability-related variables indicate disability
+# AND at least one variable indicates non-disability
+# If all relevant variables are missing, the variable is assigned NA
+```{r}
+wmr <- wmr %>%
+  mutate(
+    Index_Mother_Disabled_R = case_when(
+      # Assign 1 (disabled) if any of the variables indicate disability
+      AF2 == 1 | AF3 == 1 | AF6 %in% c(2, 3, 4) | AF8 %in% c(2, 3, 4) |
+        AF9 %in% c(2, 3, 4) | AF10 %in% c(2, 3, 4) |
+        AF11 %in% c(2, 3, 4) | AF12 %in% c(2, 3) ~ 1,
+      (AF2 == 2 | AF3 == 2 | AF6 == 1 | AF8 == 1 |
+        AF9 == 1 | AF10 == 1 | AF11 == 1 | AF12 == 1) &
+        !(AF2 == 1 | AF3 == 1 | AF6 %in% c(2, 3, 4) | AF8 %in% c(2, 3, 4) |
+          AF9 %in% c(2, 3, 4) | AF10 %in% c(2, 3, 4) |
+          AF11 %in% c(2, 3, 4) | AF12 %in% c(2, 3)) ~ 0,
+      is.na(AF2) & is.na(AF3) & is.na(AF6) & is.na(AF8) &
+        is.na(AF9) & is.na(AF10) & is.na(AF11) & is.na(AF12) ~ NA_real_,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  relocate(Index_Mother_Disabled_R, .after = AF12)
+```
+
+
+
+#Sort datasets by key variables HH1, HH2, LN
 
 ```{r}
-datasets$hhr <- datasets$hhr %>% arrange(HH1, HH2)
-datasets$hlr <- datasets$hlr %>% arrange(HH1, HH2, LN)
 datasets$wmr <- datasets$wmr %>% arrange(HH1, HH2, LN)
 datasets$chr <- datasets$chr %>% arrange(HH1, HH2, LN)
-datasets$chr <- datasets$bhr %>% arrange(HH1, HH2, LN)
-datasets$chr <- datasets$fsr %>% arrange(HH1, HH2, LN)
 ```
 
-#Merge datasets
+#Merge data sets by key variables HH1, HH2, LN
+# Merge the wmr (women) and chr (children under 5) datasets
+# The relationship between wmr and chr is one-to-many, where one woman can be the mother/caretaker of multiple children
+# Key variables used for merging:
+#   - HH1 (cluster number)
+#   - HH2 (household number)
+#   - LN (line number of woman in wmr dataset)
+#   - UF4 (line number of mother/caretaker in chr dataset)
+# The chr and wmr datasets where ordered by the key variables before merging and the variable UF4 was renamed to LN in the wmr dataset to facilitate the merge 
 ```{r}
-merged_data <- left_join(datasets$hlr, datasets$hhr, by = c("HH1", "HH2"))
-merged_data <- left_join(merged_data, datasets$wmr, by = c("HH1", "HH2", "LN"))
-merged_data <- left_join(merged_data, datasets$chr, by = c("HH1", "HH2", "LN"))
-merged_data <- left_join(merged_data, datasets$bhr, by = c("HH1", "HH2", "LN"))
-merged_data <- left_join(merged_data, datasets$fsr, by = c("HH1", "HH2", "LN"))
+wmr <- wmr %>% rename(UF4 = LN)
+chr <- chr[order(chr$HH1, chr$HH2, chr$UF4), ]
+wmr <- wmr[order(wmr$HH1, wmr$HH2, wmr$UF4), ]
+merged_data <- merge(chr, wmr, by = c("HH1", "HH2", "UF4"), all.x = TRUE)
 ```
 
 
-# Adding relevand variables for analyis
+
+# Placing the new index variables at the beginning of the dataset 
 ```{r}
-hhr_selected <- datasets$hhr %>%
-  select(HH1, HH2, HH10) # Household Wealth Index
-
-hlr_selected <- datasets$hlr %>%
-  select(HH1, HH2, LN, HH6) # Urban/Rural Residence
-
-wmr_selected <- datasets$wmr %>%
-  select(HH1, HH2, LN, WM9, WM1) # Mother Disability Status and Mother's Education Level
-
-chr_selected <- datasets$chr %>%
-  select(HH1, HH2, LN, BR2, WS2, UB9) # Birth Registration, Child Disability Status, and Health Insurance Coverage
-
+library(dplyr)
+merged_data <- merged_data %>                                                             %
+  select(HH1, HH2, UF4, Index_Birth_Registered_R, Index_Disabled_Child_R, Index_Mother_Disabled_R)
 ```
 
-
-
-
-
-# Check merged dataset
-
-```{r}
-str(merged_data)
-```
 
 # Save merged dataset for better sharing and in the case of crash
 ```{r}
@@ -117,13 +193,170 @@ write.csv(merged_data, "merged_data.csv", row.names = FALSE)
 ```
 
 
-
-
-
-
 # Start of analysis
-# Summary statistics
+# Summary statistics of the merged dataset:
 ```{r}
 summary(merged_data)
 ```
+
+#Frequency distribution of birth registration:
+```{r}
+library(ggplot2)
+
+ggplot(merged_data, aes(x = Index_Birth_Registered_R)) +
+  geom_bar() +
+  labs(title = "Frequency Distribution of Birth Registration",
+       x = "Birth Registration Status",
+       y = "Count")
+```
+
+
+#Frequency distribution of child disability:
+```{r}
+ggplot(merged_data, aes(x = Index_Disabled_Child_R)) +
+  geom_bar() +
+  labs(title = "Frequency Distribution of Child Disability",
+       x = "Child Disability Status",
+       y = "Count")
+```
+
+#Frequency distribution of mother disability:
+```{r}
+ggplot(merged_data, aes(x = Index_Mother_Disabled_R)) +
+  geom_bar() +
+  labs(title = "Frequency Distribution of Mother Disability",
+       x = "Mother Disability Status",
+       y = "Count")
+```
+
+#Cross-tabulation of birth registration and child disability:
+```{r}
+table(merged_data$Index_Birth_Registered_R, merged_data$Index_Disabled_Child_R)
+```
+
+#Cross-tabulation of birth registration and mother disability:
+```{r}
+table(merged_data$Index_Birth_Registered_R, merged_data$Index_Mother_Disabled_R)
+```
+
+#Cross-tabulation of child disability and mother disability:
+```{r}
+table(merged_data$Index_Disabled_Child_R, merged_data$Index_Mother_Disabled_R)
+```
+
+#Chi-square test of independence between birth registration and child disability:
+```{r}
+chisq.test(merged_data$Index_Birth_Registered_R, merged_data$Index_Disabled_Child_R)
+```
+
+#Chi-square test of independence between birth registration and mother disability:
+```{r}
+chisq.test(merged_data$Index_Birth_Registered_R, merged_data$Index_Mother_Disabled_R)
+```
+
+#Chi-square test of independence between child disability and mother disability:
+```{r}
+chisq.test(merged_data$Index_Disabled_Child_R, merged_data$Index_Mother_Disabled_R)
+```
+
+#Logistic regression of birth registration on child disability and mother disability:
+```{r}
+logit_model1 <- glm(Index_Birth_Registered_R ~ Index_Disabled_Child_R + Index_Mother_Disabled_R,
+                   data = merged_data, family = binomial)
+summary(logit_model1)
+```
+
+#Logistic regression of birth registration on child disability and mother disability with interaction term:
+```{r}
+logit_model2 <- glm(Index_Birth_Registered_R ~ Index_Disabled_Child_R * Index_Mother_Disabled_R,
+                   data = merged_data, family = binomial)
+summary(logit_model2)
+```
+
+
+# Odds ratios and 95% confidence intervals for logit_model1:
+```{r}
+exp(cbind(OR = coef(logit_model1), confint(logit_model1)))
+```
+
+# Odds ratios and 95% confidence intervals for logit_model2:
+```{r}
+exp(cbind(OR = coef(logit_model2), confint(logit_model2)))
+```
+
+# Predicted probabilities for logit_model1:
+```{r}
+merged_data$Predicted_Probabilities1 <- predict(logit_model1, type = "response")
+```
+
+# Predicted probabilities for logit_model2:
+```{r}
+merged_data$Predicted_Probabilities2 <- predict(logit_model2, type = "response")
+```
+
+#Visualizations for Interaction Model
+```{r}
+ggplot(merged_data, aes(x = Index_Disabled_Child_R, y = Predicted_Probabilities2, color = factor(Index_Mother_Disabled_R))) +
+  geom_point() +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE) +
+  labs(title = "Interaction Model: Predicted Probabilities of Birth Registration",
+       x = "Child Disability Status",
+       y = "Predicted Probability",
+       color = "Mother Disability Status")
+```
+
+#Predicted probabilities plot:
+```{r}
+library(effects)
+
+plot(allEffects(model2), type = "response")
+```
+
+#Interaction plot:
+```{r}
+library(interactions)
+
+interact_plot(model2, pred = Index_Disabled_Child_R, modx = Index_Mother_Disabled_R)
+```
+
+# Save merged dataset with predicted probabilities for better sharing and in the case of crash
+```{r}
+write.csv(merged_data, "merged_data_with_predicted_probabilities.csv", row.names = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
