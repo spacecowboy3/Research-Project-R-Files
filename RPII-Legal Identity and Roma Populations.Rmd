@@ -3,6 +3,9 @@ title: 'RPII: Legal Identity and Roma Populations in North Macedonia'
 author: "Noah Plane"
 date: "2024-06-12"
 output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 # Downloading package facilitating the importing of SPSS files into R
@@ -18,7 +21,6 @@ if (!requireNamespace("dplyr", quietly = TRUE)) {
 library(haven)
 library(dplyr)
 ```
-
 
 # Loading UNICEF MICS North-Macedonia SPSS data form 2018-19 into R all data that is specifically about the Roma population gets the indicator r
 
@@ -42,9 +44,6 @@ for (file in sav_files_2) {
 names(datasets)
 ```
 
-
-
-
 #Checking for if Hl1 needs to be recoded into LN for the hlr dataset
 
 ```{r}
@@ -52,11 +51,13 @@ names(datasets$hlr)
 ```
 
 # Recoding Hl1 into LN for the hlr dataset
+
 ```{r}
 datasets$hlr$LN <- datasets$hlr$HL1
 ```
 
 # Opening all datasets as a sepreate objects the global environment to check for recoding and cleaning
+
 ```{r}
 chr <- datasets$chr
 hhr <- datasets$hhr
@@ -75,7 +76,9 @@ fs <- datasets$fsr
 # Recoding primary and control variables:
 
 # Recoding indeependant variable
+
 # Creating new variable Index_Birth_Registered_R for the dependant variable that mesures birth registration, combining variable BR1 on birth cerfiticates and BR2 on birth registration into one new binary variable Index_Birth_Registered_R that mesures if the child has a birth certificate or is registered with 1 (BR1=1,2 or BR2=1) beeing yes and 0 (BR1=3 or BR2=2) beeing no with 8 and being missing data (BR1=8 or BR2=8) adding this new variable to the chr dataset next to the original variables BR1 and BR2
+
 ```{r}
 chr <- chr %>%
   mutate(
@@ -90,15 +93,23 @@ chr <- chr %>%
 
 ```
 
-# Recoding independent variable 
-# Creating new variable Index_Disabled_Child_R for the independent variablet hat indicates if a child is disabled (1) or not (0) 
+# Recoding independent variable
+
+# Creating new variable Index_Disabled_Child_R for the independent variablet hat indicates if a child is disabled (1) or not (0)
+
 # based on a combination of variables related to disabilities (UCF3, UCF4, UCF7, UCF9, UCF11, UCF12, UCF13-UCF18)
+
 # The variable is assigned 1 if any of the disability-related variables indicate disability
+
 # The variable is assigned 0 if none of the disability-related variables indicate disability
+
 # AND at least one variable indicates non-disability
+
 # If all relevant variables are missing, the variable is assigned NA
 
-binary variable Index_Disabled_Child, where 1 is disabled, 0 is not disabled, and the rest is coded as missing.
+binary variable Index_Disabled_Child, where 1 is disabled, 0 is not
+disabled, and the rest is coded as missing.
+
 ```{r}
 chr <- chr %>%
   mutate(
@@ -124,13 +135,20 @@ chr <- chr %>%
   relocate(Index_Disabled_Child_R, .after = UCF18)
 ```
 
-# Recoding independent variable/moderator 
+# Recoding independent variable/moderator
+
 # Creating new variable Index_Mother_Disabled_R for the independent variable that indicates if the mother is disabled (1) or not (0)
+
 # based on a combination of variables related to disabilities ((AF2, AF3, AF6, AF8, AF9, AF10, AF11, AF12)
+
 # The variable is assigned 1 if any of the disability-related variables indicate disability
+
 # The variable is assigned 0 if none of the disability-related variables indicate disability
+
 # AND at least one variable indicates non-disability
+
 # If all relevant variables are missing, the variable is assigned NA
+
 ```{r}
 wmr <- wmr %>%
   mutate(
@@ -152,8 +170,6 @@ wmr <- wmr %>%
   relocate(Index_Mother_Disabled_R, .after = AF12)
 ```
 
-
-
 #Sort datasets by key variables HH1, HH2, LN
 
 ```{r}
@@ -161,15 +177,16 @@ datasets$wmr <- datasets$wmr %>% arrange(HH1, HH2, LN)
 datasets$chr <- datasets$chr %>% arrange(HH1, HH2, LN)
 ```
 
-#Merge data sets by key variables HH1, HH2, LN
-# Merge the wmr (women) and chr (children under 5) datasets
-# The relationship between wmr and chr is one-to-many, where one woman can be the mother/caretaker of multiple children
-# Key variables used for merging:
-#   - HH1 (cluster number)
-#   - HH2 (household number)
-#   - LN (line number of woman in wmr dataset)
-#   - UF4 (line number of mother/caretaker in chr dataset)
-# The chr and wmr datasets where ordered by the key variables before merging and the variable UF4 was renamed to LN in the wmr dataset to facilitate the merge 
+#Merge data sets by key variables HH1, HH2, LN \# Merge the wmr (women)
+and chr (children under 5) datasets \# The relationship between wmr and
+chr is one-to-many, where one woman can be the mother/caretaker of
+multiple children \# Key variables used for merging: \# - HH1 (cluster
+number) \# - HH2 (household number) \# - LN (line number of woman in wmr
+dataset) \# - UF4 (line number of mother/caretaker in chr dataset) \#
+The chr and wmr datasets where ordered by the key variables before
+merging and the variable UF4 was renamed to LN in the wmr dataset to
+facilitate the merge
+
 ```{r}
 wmr <- wmr %>% rename(UF4 = LN)
 chr <- chr[order(chr$HH1, chr$HH2, chr$UF4), ]
@@ -177,29 +194,30 @@ wmr <- wmr[order(wmr$HH1, wmr$HH2, wmr$UF4), ]
 merged_data <- merge(chr, wmr, by = c("HH1", "HH2", "UF4"), all.x = TRUE)
 ```
 
+# Placing the new index variables at the beginning of the dataset
 
-
-# Placing the new index variables at the beginning of the dataset 
 ```{r}
 library(dplyr)
 merged_data <- merged_data %>                                                             %
   select(HH1, HH2, UF4, Index_Birth_Registered_R, Index_Disabled_Child_R, Index_Mother_Disabled_R)
 ```
 
-
 # Save merged dataset for better sharing and in the case of crash
+
 ```{r}
 write.csv(merged_data, "merged_data.csv", row.names = FALSE)
 ```
 
-
 # Start of analysis
+
 # Summary statistics of the merged dataset:
+
 ```{r}
 summary(merged_data)
 ```
 
 #Frequency distribution of birth registration:
+
 ```{r}
 library(ggplot2)
 
@@ -210,8 +228,8 @@ ggplot(merged_data, aes(x = Index_Birth_Registered_R)) +
        y = "Count")
 ```
 
-
 #Frequency distribution of child disability:
+
 ```{r}
 ggplot(merged_data, aes(x = Index_Disabled_Child_R)) +
   geom_bar() +
@@ -221,6 +239,7 @@ ggplot(merged_data, aes(x = Index_Disabled_Child_R)) +
 ```
 
 #Frequency distribution of mother disability:
+
 ```{r}
 ggplot(merged_data, aes(x = Index_Mother_Disabled_R)) +
   geom_bar() +
@@ -230,71 +249,88 @@ ggplot(merged_data, aes(x = Index_Mother_Disabled_R)) +
 ```
 
 #Cross-tabulation of birth registration and child disability:
+
 ```{r}
 table(merged_data$Index_Birth_Registered_R, merged_data$Index_Disabled_Child_R)
 ```
 
 #Cross-tabulation of birth registration and mother disability:
+
 ```{r}
 table(merged_data$Index_Birth_Registered_R, merged_data$Index_Mother_Disabled_R)
 ```
 
 #Cross-tabulation of child disability and mother disability:
+
 ```{r}
 table(merged_data$Index_Disabled_Child_R, merged_data$Index_Mother_Disabled_R)
 ```
 
-#Chi-square test of independence between birth registration and child disability:
+#Chi-square test of independence between birth registration and child
+disability:
+
 ```{r}
 chisq.test(merged_data$Index_Birth_Registered_R, merged_data$Index_Disabled_Child_R)
 ```
 
-#Chi-square test of independence between birth registration and mother disability:
+#Chi-square test of independence between birth registration and mother
+disability:
+
 ```{r}
 chisq.test(merged_data$Index_Birth_Registered_R, merged_data$Index_Mother_Disabled_R)
 ```
 
-#Chi-square test of independence between child disability and mother disability:
+#Chi-square test of independence between child disability and mother
+disability:
+
 ```{r}
 chisq.test(merged_data$Index_Disabled_Child_R, merged_data$Index_Mother_Disabled_R)
 ```
 
-#Logistic regression of birth registration on child disability and mother disability:
+#Logistic regression of birth registration on child disability and
+mother disability:
+
 ```{r}
 logit_model1 <- glm(Index_Birth_Registered_R ~ Index_Disabled_Child_R + Index_Mother_Disabled_R,
                    data = merged_data, family = binomial)
 summary(logit_model1)
 ```
 
-#Logistic regression of birth registration on child disability and mother disability with interaction term:
+#Logistic regression of birth registration on child disability and
+mother disability with interaction term:
+
 ```{r}
 logit_model2 <- glm(Index_Birth_Registered_R ~ Index_Disabled_Child_R * Index_Mother_Disabled_R,
                    data = merged_data, family = binomial)
 summary(logit_model2)
 ```
 
-
 # Odds ratios and 95% confidence intervals for logit_model1:
+
 ```{r}
 exp(cbind(OR = coef(logit_model1), confint(logit_model1)))
 ```
 
 # Odds ratios and 95% confidence intervals for logit_model2:
+
 ```{r}
 exp(cbind(OR = coef(logit_model2), confint(logit_model2)))
 ```
 
 # Predicted probabilities for logit_model1:
+
 ```{r}
 merged_data$Predicted_Probabilities1 <- predict(logit_model1, type = "response")
 ```
 
 # Predicted probabilities for logit_model2:
+
 ```{r}
 merged_data$Predicted_Probabilities2 <- predict(logit_model2, type = "response")
 ```
 
 #Visualizations for Interaction Model
+
 ```{r}
 ggplot(merged_data, aes(x = Index_Disabled_Child_R, y = Predicted_Probabilities2, color = factor(Index_Mother_Disabled_R))) +
   geom_point() +
@@ -306,6 +342,7 @@ ggplot(merged_data, aes(x = Index_Disabled_Child_R, y = Predicted_Probabilities2
 ```
 
 #Predicted probabilities plot:
+
 ```{r}
 library(effects)
 
@@ -313,6 +350,7 @@ plot(allEffects(model2), type = "response")
 ```
 
 #Interaction plot:
+
 ```{r}
 library(interactions)
 
@@ -320,198 +358,152 @@ interact_plot(model2, pred = Index_Disabled_Child_R, modx = Index_Mother_Disable
 ```
 
 # Save merged dataset with predicted probabilities for better sharing and in the case of crash
+
 ```{r}
 write.csv(merged_data, "merged_data_with_predicted_probabilities.csv", row.names = FALSE)
 ```
 
-install.packages("dplyr")
-library(dplyr)
-hhr <- read.csv("path_to_your_file.csv")
+install.packages("dplyr") library(dplyr) hhr \<-
+read.csv("path_to_your_file.csv")
 
+# Recoding control variable for religion of the head of the household to determine whether the household follows any religion or follows atheism
 
-# Recoding control variable for religion of the head of the household to determine whether the household follows any religion or follows atheism 
 # creating new variable HouseHead_Religiosity_R for the control variable
+
 # Based on the values on HC1A, the variable is assigned 0, if the response is =7 (7 represenets no religion)
+
 # Based on HC1A, the variable is assigned 1, if the resposnse is= 1,2,3,4 0r 6 (each resposne corresponds affiliation to a certain religion)
-# for any other values, NA is alloted 
 
-hh <- hh %>%
-  mutate(
-    HouseHead_Religiosity_R = case_when(
-      HC1A %in% c(1, 2, 3, 4, 6) ~ 1,   # Recode to 1 if HC1A is 1, 2, 3, 4, or 6
-      HC1A == 7 ~ 0,                    # Recode to 0 if HC1A is 7
-      TRUE ~ NA_real_                   # Assign NA for any other values or missing data
-    )
-  ) %>%
-  relocate(HouseHead_Religiosity_R, .after = HC1B)  # Move the new variable to be right after HC1B
-  
+# for any other values, NA is alloted
+
+hh \<- hh %\>% mutate( HouseHead_Religiosity_R = case_when( HC1A %in%
+c(1, 2, 3, 4, 6) \~ 1, \# Recode to 1 if HC1A is 1, 2, 3, 4, or 6 HC1A
+== 7 \~ 0, \# Recode to 0 if HC1A is 7 TRUE \~ NA_real\_ \# Assign NA
+for any other values or missing data ) ) %\>%
+relocate(HouseHead_Religiosity_R, .after = HC1B) \# Move the new
+variable to be right after HC1B
+
 # creating a new control variable for desire of the last birth desire_for_lastbirth_r
-# creating a new variable by using DB1 and DB2 
-# DB1=CM17 represents if there was a live birth in the last 2 years; if yes, value=1 and if no, value=2 
-# DB2 represents whether the last preganancy was wanted or not; if yes, value=1 and no, value=2
-# the condition for new variable is if CM17=1 and DB2=1, then, desire for birth is yes and is recoded to 1
-# condition 2 is, if CM17=1  and DB2=2 then, desire for preganancy is no and is recoeded to 0
-# lastly, if the response to CM17=2, then, there was no pregnancy so, the value is recoded to NA. 
 
-wm <- wm %>%
-  mutate(
-    desire_for_lastbirth_r = case_when(
-      CM17 == 1 & DB2 == 1 ~ 1,   # If CM17 (DB1) is YES and DB2 is YES, assign 1
-      CM17 == 1 & DB2 == 2 ~ 0,   # If CM17 (DB1) is YES and DB2 is NO, assign 0
-      CM17 == 2 ~ NA_real_,       # If CM17 (DB1) is NO, assign NA
-      TRUE ~ NA_real_             # For any other cases, assign NA
-    )
-  ) %>%
-  relocate(desire_for_lastbirth_r, .after = DB2)  # Relocate the new variable after DB2
+# creating a new variable by using DB1 and DB2
+
+# DB1=CM17 represents if there was a live birth in the last 2 years; if yes, value=1 and if no, value=2
+
+# DB2 represents whether the last preganancy was wanted or not; if yes, value=1 and no, value=2
+
+# the condition for new variable is if CM17=1 and DB2=1, then, desire for birth is yes and is recoded to 1
+
+# condition 2 is, if CM17=1 and DB2=2 then, desire for preganancy is no and is recoeded to 0
+
+# lastly, if the response to CM17=2, then, there was no pregnancy so, the value is recoded to NA.
+
+wm \<- wm %\>% mutate( desire_for_lastbirth_r = case_when( CM17 == 1 &
+DB2 == 1 \~ 1, \# If CM17 (DB1) is YES and DB2 is YES, assign 1 CM17 ==
+1 & DB2 == 2 \~ 0, \# If CM17 (DB1) is YES and DB2 is NO, assign 0 CM17
+== 2 \~ NA_real\_, \# If CM17 (DB1) is NO, assign NA TRUE \~ NA_real\_
+\# For any other cases, assign NA ) ) %\>%
+relocate(desire_for_lastbirth_r, .after = DB2) \# Relocate the new
+variable after DB2
 
 # Creating the dummy variables based on the given subcategories
-#Ethnic_Immigration_Dummy: Indicates if the respondent felt discriminated against based on ethnic or immigration origin.
-#Sex_Dummy: Indicates if the respondent felt discriminated against based on sex.
-#Sexual_Orientation_Dummy: Indicates if the respondent felt discriminated against based on sexual orientation.
-#Age_Dummy: Indicates if the respondent felt discriminated against based on age.
-#Religion_Belief_Dummy: Indicates if the respondent felt discriminated against based on religion or belief.
-#Other_Reason_Dummy: Indicates if the respondent felt discriminated against for any other reason.
-#Assigns 1 if the discrimination is reported (value 1).
-#Assigns 0 if discrimination is not reported (value 2).
-#Assigns NA for any other case (e.g., DK or missing values).
 
-wm <- wm %>%
-  mutate(
-    Ethnic_Immigration_Dummy = case_when(
-      VT22A == 1 ~ 1,
-      VT22A == 2 ~ 0,
-      TRUE ~ NA_real_
-    ),
-    Sex_Dummy = case_when(
-      VT22B == 1 ~ 1,
-      VT22B == 2 ~ 0,
-      TRUE ~ NA_real_
-    ),
-    Sexual_Orientation_Dummy = case_when(
-      VT22C == 1 ~ 1,
-      VT22C == 2 ~ 0,
-      TRUE ~ NA_real_
-    ),
-    Age_Dummy = case_when(
-      VT22D == 1 ~ 1,
-      VT22D == 2 ~ 0,
-      TRUE ~ NA_real_
-    ),
-    Religion_Belief_Dummy = case_when(
-      VT22E == 1 ~ 1,
-      VT22E == 2 ~ 0,
-      TRUE ~ NA_real_
-    ),
-    Other_Reason_Dummy = case_when(
-      VT22X == 1 ~ 1,
-      VT22X == 2 ~ 0,
-      TRUE ~ NA_real_
-    )
-  ) %>%
-  relocate(Ethnic_Immigration_Dummy, .after = VT22X) %>%
-  relocate(Sex_Dummy, .after = Ethnic_Immigration_Dummy) %>%
-  relocate(Sexual_Orientation_Dummy, .after = Sex_Dummy) %>%
-  relocate(Age_Dummy, .after = Sexual_Orientation_Dummy) %>%
-  relocate(Religion_Belief_Dummy, .after = Age_Dummy) %>%
-  relocate(Other_Reason_Dummy, .after = Religion_Belief_Dummy)
+#Ethnic_Immigration_Dummy: Indicates if the respondent felt discriminated against based on ethnic or immigration origin. 
+#Sex_Dummy:Indicates if the respondent felt discriminated against based on sex.
+#Sexual_Orientation_Dummy: Indicates if the respondent felt discriminated against based on sexual orientation. #Age_Dummy: Indicates if the respondent felt discriminated against based on age.
+#Religion_Belief_Dummy: Indicates if the respondent felt discriminated against based on religion or belief. #Other_Reason_Dummy: Indicates if the respondent felt discriminated against for any other reason. #Assigns 1 if the discrimination is reported (value 1). #Assigns 0 if discrimination is not reported (value 2). #Assigns NA for any other case (e.g., DK or missing values).
+
+wm \<- wm %\>% mutate( Ethnic_Immigration_Dummy = case_when( VT22A == 1
+\~ 1, VT22A == 2 \~ 0, TRUE \~ NA_real\_ ), Sex_Dummy = case_when( VT22B
+== 1 \~ 1, VT22B == 2 \~ 0, TRUE \~ NA_real\_ ),
+Sexual_Orientation_Dummy = case_when( VT22C == 1 \~ 1, VT22C == 2 \~ 0,
+TRUE \~ NA_real\_ ), Age_Dummy = case_when( VT22D == 1 \~ 1, VT22D == 2
+\~ 0, TRUE \~ NA_real\_ ), Religion_Belief_Dummy = case_when( VT22E == 1
+\~ 1, VT22E == 2 \~ 0, TRUE \~ NA_real\_ ), Other_Reason_Dummy =
+case_when( VT22X == 1 \~ 1, VT22X == 2 \~ 0, TRUE \~ NA_real\_ ) ) %\>%
+relocate(Ethnic_Immigration_Dummy, .after = VT22X) %\>%
+relocate(Sex_Dummy, .after = Ethnic_Immigration_Dummy) %\>%
+relocate(Sexual_Orientation_Dummy, .after = Sex_Dummy) %\>%
+relocate(Age_Dummy, .after = Sexual_Orientation_Dummy) %\>%
+relocate(Religion_Belief_Dummy, .after = Age_Dummy) %\>%
+relocate(Other_Reason_Dummy, .after = Religion_Belief_Dummy)
 
 # Creating a new variable for education level among mothers: Create a new variable level_of_education_mother_r.
+
 # If CM1 is 1 (mother) and WB6A is 3, 4, 5, or 6 (higher education levels), set to 1 (educated): Set to 1 if the woman is a mother and has a higher level of education.
+
 # If CM1 is 1 (mother) and WB6A is 1, 2, or 000 (lower education levels), set to 0 (not educated): Set to 0 if the woman is a mother and has a lower level of education.
+
 # If CM1 is 2 (not a mother), set to NA (not applicable): Set to NA if the woman is not a mother.
+
 # For any other case, set to NA: Default to NA for any other cases.
+
 # Relocate the new variable after the WB6A column: Move the new variable to be after the WB6A column.
 
-wm <- wm %>%
-  mutate(
-    level_of_education_mother_r = case_when(
-      CM1 == 1 & WB6A %in% c(3, 4, 5, 6) ~ 1,  # If CM1=1 and WB6A is 3, 4, 5, 6, then educated (1)
-      CM1 == 1 & WB6A %in% c(1, 2, 000) ~ 0,    # If CM1=1 and WB6A is 1, 2, or 000, then not educated (0)
-      CM1 == 2 ~ NA_real_,                      # If CM1=2, then NA (not a mother)
-      TRUE ~ NA_real_                           # Any other case, assign NA
-    )
-  ) %>%
-  relocate(level_of_education_mother_r, .after = WB6A)
+wm \<- wm %\>% mutate( level_of_education_mother_r = case_when( CM1 == 1
+& WB6A %in% c(3, 4, 5, 6) \~ 1, \# If CM1=1 and WB6A is 3, 4, 5, 6, then
+educated (1) CM1 == 1 & WB6A %in% c(1, 2, 000) \~ 0, \# If CM1=1 and
+WB6A is 1, 2, or 000, then not educated (0) CM1 == 2 \~ NA_real\_, \# If
+CM1=2, then NA (not a mother) TRUE \~ NA_real\_ \# Any other case,
+assign NA ) ) %\>% relocate(level_of_education_mother_r, .after = WB6A)
 
-#Create a new variable called Mother_Health_Insurance.
-# If a woman is a mother (CM1 == 1) and has health insurance (WB18 == 1), set Mother_Health_Insurance to 1 (insured).
-# If a woman is a mother (CM1 == 1) and does not have health insurance (WB18 == 2), set Mother_Health_Insurance to 0 (not insured).
+#Create a new variable called Mother_Health_Insurance. \
+# If a woman is a mother (CM1 == 1) and has health insurance (WB18 == 1), set Mother_Health_Insurance to 1 (insured). 
+# If a woman is a mother (CM1== 1) and does not have health insurance (WB18 == 2), set Mother_Health_Insurance to 0 (not insured). 
 # If a woman is not a mother (CM1 == 2), set Mother_Health_Insurance to NA (not applicable).
-# For any other case, set Mother_Health_Insurance to NA.
+# For any other case, set Mother_Health_Insurance to NA. 
 # Relocating the Mother_Health_Insurance variable to be immediately after the WB18 column.
 
-wm <- wm %>%
-  mutate(
-    # Creating a new variable for health insurance status among mothers
-    Mother_Health_Insurance = case_when(
-      # If CM1 is 1 (mother) and WB18 is 1 (has health insurance), set to 1 (insured)
-      CM1 == 1 & WB18 == 1 ~ 1,  
-      # If CM1 is 1 (mother) and WB18 is 2 (no health insurance), set to 0 (not insured)
-      CM1 == 1 & WB18 == 2 ~ 0,    
-      # If CM1 is 2 (not a mother), set to NA (not applicable)
-      CM1 == 2 ~ NA_real_,                      
-      # For any other case, set to NA
-      TRUE ~ NA_real_                           
-    )
-  ) %>%
-  # Relocate the new variable after the WB18 column
-  relocate(Mother_Health_Insurance, .after = WB18)
-
-
-# Calculate the total number of assistance programs received
-# Classify the families based on the assistance count
-# Relocate the new variable after the last column of interest
-
-# Create the new variable for family economic status based on social assistance responses
+wm \<- wm %\>% mutate( \# Creating a new variable for health insurance
+status among mothers Mother_Health_Insurance = case_when( \# If CM1 is 1
+(mother) and WB18 is 1 (has health insurance), set to 1 (insured) CM1 ==
+1 & WB18 == 1 \~ 1,\
+\# If CM1 is 1 (mother) and WB18 is 2 (no health insurance), set to 0
+(not insured) CM1 == 1 & WB18 == 2 \~ 0,\
+\# If CM1 is 2 (not a mother), set to NA (not applicable) CM1 == 2 \~
+NA_real\_,\
+\# For any other case, set to NA TRUE \~ NA_real\_\
+) ) %\>% \# Relocate the new variable after the WB18 column
+relocate(Mother_Health_Insurance, .after = WB18)
 
 hh <- hh %>%
+  rename(ST3_1 = `ST3$1`)
+  
+  hh <- hh %>%
+  rename(ST3_2 = `ST3$2`)
+  hh <- hh %>%
+  rename(ST3_3 = `ST3$3`)
+  hh <- hh %>%
+  rename(ST3_4 = `ST3$4`)
+  hh <- hh %>%
+  rename(ST3_5 = `ST3$5`)
+  hh <- hh %>%
+  rename(ST3_6 = `ST3$6`)
+
+# Create the new variable for family economic status based on social assistance responses
+hh <- hh %>%
   mutate(
-    # Classify the families based on the responses to each assistance program
+    # Calculate the number of 'yes' responses for each family
+    num_assistance_yes = (ST3_1 == 1) + (ST3_2 == 1) + (ST3_3 == 1) + 
+                         (ST3_4 == 1) + (ST3_5 == 1) + (ST3_6 == 1),
+    
+    # Classify the families based on the number of 'yes' responses
     family_economic_status = case_when(
       # Poor: Yes to 3 or more programs
-      (ST3_1 == 1) + (ST3_2 == 1) + (ST3_3 == 1) + (ST3_4 == 1) + (ST3_5 == 1) + (ST3_6 == 1) >= 3 ~ 0,
+      num_assistance_yes >= 3 ~ 0,
       
       # Average: Yes to 1 or 2 programs
-      (ST3_1 == 1) + (ST3_2 == 1) + (ST3_3 == 1) + (ST3_4 == 1) + (ST3_5 == 1) + (ST3_6 == 1) >= 1 &
-      (ST3_1 == 1) + (ST3_2 == 1) + (ST3_3 == 1) + (ST3_4 == 1) + (ST3_5 == 1) + (ST3_6 == 1) <= 2 ~ 1,
+      num_assistance_yes >= 1 & num_assistance_yes <= 2 ~ 1,
       
       # Rich: No to all programs
-      (ST3_1 == 2) & (ST3_2 == 2) & (ST3_3 == 2) & (ST3_4 == 2) & (ST3_5 == 2) & (ST3_6 == 2) ~ 2,
+      num_assistance_yes == 0 ~ 2,
       
-      # Any other case should be treated as NA
+      # Any other case should be treated as NA (not applicable here, but added for completeness)
       TRUE ~ NA_real_
     )
   ) %>%
+  # Remove the temporary num_assistance_yes column
+  select(-num_assistance_yes) %>%
   # Relocate the new variable after the last ST3 column
-  relocate(family_economic_status, .after = last_col())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  relocate(family_economic_status, .after = ST3_6)
+  
+  
